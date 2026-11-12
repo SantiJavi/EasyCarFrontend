@@ -6,9 +6,19 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog.jsx'
 import { EmptyState, ErrorAlert, SkeletonCard } from '../components/ui/Feedback.jsx'
 import { MantenimientoCard } from '../components/mantenimiento/MantenimientoCard.jsx'
 import { AgregarMantenimientoModal } from '../components/mantenimiento/AgregarMantenimientoModal.jsx'
+import { EditarMantenimientoModal } from '../components/mantenimiento/EditarMantenimientoModal.jsx'
 import { ActualizarKilometrajeModal } from '../components/mantenimiento/ActualizarKilometrajeModal.jsx'
 import { RegistrarMantenimientoModal } from '../components/mantenimiento/RegistrarMantenimientoModal.jsx'
-import { ArrowLeftIcon, ClockIcon, GaugeIcon, PlusIcon, TrashIcon, WrenchIcon } from '../components/icons/Icons.jsx'
+import { CompartirVehiculoModal } from '../components/vehiculos/CompartirVehiculoModal.jsx'
+import {
+  ArrowLeftIcon,
+  ClockIcon,
+  GaugeIcon,
+  PlusIcon,
+  TrashIcon,
+  UsersIcon,
+  WrenchIcon,
+} from '../components/icons/Icons.jsx'
 import { useToast } from '../hooks/useToast.js'
 import { useNotificaciones } from '../hooks/useNotificaciones.js'
 import { useApiResource } from '../hooks/useApiResource.js'
@@ -22,6 +32,7 @@ import {
 import { vehiculosApi } from '../api/vehiculos.js'
 import { historialesApi } from '../api/historiales.js'
 import { buttonClasses } from '../lib/buttonStyles.js'
+import { esPropietario, etiquetaRol, puedeEditar, rolDe } from '../lib/permisos.js'
 
 export function VehiculoPage() {
   const { id } = useParams()
@@ -32,6 +43,8 @@ export function VehiculoPage() {
   const [modal, setModal] = useState(null)
   const [aEliminar, setAEliminar] = useState(null)
   const [registrando, setRegistrando] = useState(null)
+  const [editando, setEditando] = useState(null)
+  const [compartiendo, setCompartiendo] = useState(false)
 
   // Recarga el vehiculo y recalcula las notificaciones de la campanita.
   function recargar() {
@@ -73,6 +86,9 @@ export function VehiculoPage() {
   )
   const anio = vehiculo.fechaMatricula ? new Date(vehiculo.fechaMatricula).getFullYear() : null
   const tiposPorId = new Map(tipos.map((tipo) => [tipo.id, tipo]))
+  // Permisos segun el rol que devuelve el API para este vehiculo.
+  const editable = puedeEditar(vehiculo)
+  const propietario = esPropietario(vehiculo)
 
   async function eliminarRegistro() {
     await historialesApi.eliminar(aEliminar.id)
@@ -104,6 +120,11 @@ export function VehiculoPage() {
               {vehiculo.marca}
               {anio ? ` · ${anio}` : ''}
             </span>
+            {propietario ? null : (
+              <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white ring-1 ring-white/20">
+                {etiquetaRol(rolDe(vehiculo))}
+              </span>
+            )}
           </div>
 
           <h1 className="mt-2.5 text-[24px] font-semibold tracking-tight sm:text-[30px]">
@@ -124,10 +145,30 @@ export function VehiculoPage() {
               </p>
             </div>
 
-            <Button variant="light" size="lg" className="w-full sm:w-auto" onClick={() => setModal('kilometraje')}>
-              <GaugeIcon className="h-4 w-4" />
-              Actualizar kilometraje
-            </Button>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              {propietario ? (
+                <Button
+                  variant="light"
+                  size="lg"
+                  className="w-full sm:w-auto"
+                  onClick={() => setCompartiendo(true)}
+                >
+                  <UsersIcon className="h-4 w-4" />
+                  Compartir
+                </Button>
+              ) : null}
+              {editable ? (
+                <Button
+                  variant="light"
+                  size="lg"
+                  className="w-full sm:w-auto"
+                  onClick={() => setModal('kilometraje')}
+                >
+                  <GaugeIcon className="h-4 w-4" />
+                  Actualizar kilometraje
+                </Button>
+              ) : null}
+            </div>
           </div>
         </div>
       </section>
@@ -145,10 +186,12 @@ export function VehiculoPage() {
               Ordenados por lo que se vence primero (kilometraje o fecha).
             </p>
           </div>
-          <Button size="sm" variant="secondary" onClick={() => setModal('mantenimiento')}>
-            <PlusIcon className="h-4 w-4" />
-            Agregar
-          </Button>
+          {editable ? (
+            <Button size="sm" variant="secondary" onClick={() => setModal('mantenimiento')}>
+              <PlusIcon className="h-4 w-4" />
+              Agregar
+            </Button>
+          ) : null}
         </div>
 
         {tipos.length === 0 ? (
@@ -156,12 +199,18 @@ export function VehiculoPage() {
             <EmptyState
               icono={<WrenchIcon className="h-6 w-6" />}
               titulo="Sin mantenimientos programados"
-              descripcion="Agrega Aceite, Banda o Llantas con su frecuencia en kilometros y en meses."
+              descripcion={
+                editable
+                  ? 'Agrega Aceite, Banda o Llantas con su frecuencia en kilometros o en meses.'
+                  : 'El propietario todavia no programo mantenimientos para este vehiculo.'
+              }
               accion={
-                <Button onClick={() => setModal('mantenimiento')}>
-                  <PlusIcon className="h-4 w-4" />
-                  Agregar mantenimiento
-                </Button>
+                editable ? (
+                  <Button onClick={() => setModal('mantenimiento')}>
+                    <PlusIcon className="h-4 w-4" />
+                    Agregar mantenimiento
+                  </Button>
+                ) : null
               }
             />
           </div>
@@ -172,7 +221,9 @@ export function VehiculoPage() {
                 key={tipo.id}
                 tipo={tipo}
                 vehiculo={vehiculo}
-                onRegistrar={(item) => setRegistrando(item)}
+                puedeEditar={editable}
+                onRegistrar={editable ? (item) => setRegistrando(item) : undefined}
+                onEditar={editable ? (item) => setEditando(item) : undefined}
               />
             ))}
           </div>
@@ -227,14 +278,16 @@ export function VehiculoPage() {
                       <span className="hidden sm:inline">{formatFecha(registro.fechaMantenimiento)}</span>
                     </td>
                     <td className="px-3 py-3 text-right sm:px-4">
-                      <button
-                        type="button"
-                        onClick={() => setAEliminar(registro)}
-                        className="rounded-lg p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
-                        aria-label="Eliminar registro"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
+                      {editable ? (
+                        <button
+                          type="button"
+                          onClick={() => setAEliminar(registro)}
+                          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                          aria-label="Eliminar registro"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -244,7 +297,16 @@ export function VehiculoPage() {
         )}
       </section>
 
-      {modal === 'mantenimiento' ? (
+      {compartiendo ? (
+        <CompartirVehiculoModal
+          open
+          onClose={() => setCompartiendo(false)}
+          vehiculo={vehiculo}
+          onSaved={recargar}
+        />
+      ) : null}
+
+      {modal === 'mantenimiento' && editable ? (
         <AgregarMantenimientoModal
           open
           onClose={() => setModal(null)}
@@ -253,11 +315,21 @@ export function VehiculoPage() {
         />
       ) : null}
 
-      {modal === 'kilometraje' ? (
+      {modal === 'kilometraje' && editable ? (
         <ActualizarKilometrajeModal
           open
           onClose={() => setModal(null)}
           vehiculo={vehiculo}
+          onSaved={recargar}
+        />
+      ) : null}
+
+      {editando ? (
+        <EditarMantenimientoModal
+          open
+          onClose={() => setEditando(null)}
+          vehiculo={vehiculo}
+          tipo={editando}
           onSaved={recargar}
         />
       ) : null}

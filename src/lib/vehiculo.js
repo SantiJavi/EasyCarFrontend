@@ -64,6 +64,45 @@ export function ultimoRegistroDeTipo(vehiculo, tipoId) {
   )[0]
 }
 
+/** Frecuencia declarada por el usuario (km). Null si el registro es anterior a este campo. */
+export function frecuenciaKmDe(tipo) {
+  const valor = Number(tipo?.frecuenciaKm)
+  return Number.isFinite(valor) && valor > 0 ? valor : null
+}
+
+/** Frecuencia declarada por el usuario (meses). */
+export function frecuenciaMesesDe(tipo) {
+  const valor = Number(tipo?.frecuenciaMeses)
+  return Number.isFinite(valor) && valor > 0 ? valor : null
+}
+
+/**
+ * Punto desde el que se cuenta la frecuencia por kilometraje: el ultimo servicio
+ * de ese mantenimiento; si nunca se hizo, el objetivo menos la frecuencia; y si
+ * tampoco hay frecuencia (datos viejos), el kilometraje actual del vehiculo.
+ */
+export function baseKmDe(tipo, vehiculo) {
+  const ultimo = ultimoRegistroDeTipo(vehiculo, tipo?.id)
+  if (ultimo?.kilometrajeActual !== null && ultimo?.kilometrajeActual !== undefined) {
+    return ultimo.kilometrajeActual
+  }
+  const frecuencia = frecuenciaKmDe(tipo)
+  if (frecuencia !== null && tipo?.kilometrajeObjetivo !== null && tipo?.kilometrajeObjetivo !== undefined) {
+    return Math.max(0, tipo.kilometrajeObjetivo - frecuencia)
+  }
+  return kmActual(vehiculo)
+}
+
+/** Fecha desde la que se cuenta la frecuencia por meses: ultimo servicio o hoy. */
+export function baseFechaDe(tipo, vehiculo) {
+  const ultimo = ultimoRegistroDeTipo(vehiculo, tipo?.id)
+  return ultimo?.fechaMantenimiento ? new Date(ultimo.fechaMantenimiento) : new Date()
+}
+
+export function diasPorMeses(meses) {
+  return Math.max(1, Math.round(Number(meses || 0) * 30.4375))
+}
+
 function limitar(valor) {
   return Math.min(1, Math.max(0, valor))
 }
@@ -85,20 +124,23 @@ export function evaluarTipo(tipo, vehiculo, opciones = {}) {
   const kmRestantes = km !== null && proximoKm !== null ? proximoKm - km : null
   const diasRestantes = proximaFecha ? diasHasta(proximaFecha) : null
 
+  // La frecuencia configurada manda; el historial y las ventanas por defecto son respaldo.
   const intervaloKm =
-    ultimo?.kilometrajeActual !== null &&
+    frecuenciaKmDe(tipo) ??
+    (ultimo?.kilometrajeActual !== null &&
     ultimo?.kilometrajeActual !== undefined &&
     proximoKm !== null
       ? Math.max(1, proximoKm - ultimo.kilometrajeActual)
-      : null
+      : null)
 
   const intervaloDias =
-    ultimo?.fechaMantenimiento && proximaFecha
+    (frecuenciaMesesDe(tipo) ? diasPorMeses(frecuenciaMesesDe(tipo)) : null) ??
+    (ultimo?.fechaMantenimiento && proximaFecha
       ? Math.max(
           1,
           Math.round((new Date(proximaFecha) - new Date(ultimo.fechaMantenimiento)) / MS_DIA),
         )
-      : null
+      : null)
 
   const urgenciaKm = kmRestantes !== null ? kmRestantes / (intervaloKm ?? 5000) : null
   const urgenciaDias = diasRestantes !== null ? diasRestantes / (intervaloDias ?? 180) : null

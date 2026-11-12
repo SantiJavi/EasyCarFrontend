@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../components/layout/AuthLayout.jsx'
 import { Button } from '../components/ui/Button.jsx'
 import { ErrorAlert } from '../components/ui/Feedback.jsx'
-import { Input } from '../components/ui/Field.jsx'
+import { Input, PasswordInput } from '../components/ui/Field.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 import { useFormState } from '../hooks/useFormState.js'
 
@@ -39,14 +39,6 @@ export function LoginPage() {
     <AuthLayout
       title="Inicia sesion"
       subtitle="Entra con el email y la contrasena de tu cuenta"
-      footer={
-        <>
-          No tienes cuenta?{' '}
-          <Link to="/registro" className="font-semibold text-indigo-600 hover:text-indigo-700 hover:underline">
-            Crear una
-          </Link>
-        </>
-      }
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <ErrorAlert error={error} />
@@ -60,9 +52,8 @@ export function LoginPage() {
           onChange={(event) => setField('email', event.target.value)}
           required
         />
-        <Input
+        <PasswordInput
           id="password"
-          type="password"
           label="Contrasena"
           autoComplete="current-password"
           placeholder="********"

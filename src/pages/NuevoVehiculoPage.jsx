@@ -2,18 +2,16 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/Button.jsx'
 import { ErrorAlert } from '../components/ui/Feedback.jsx'
-import { Input } from '../components/ui/Field.jsx'
+import { Input, KmInput } from '../components/ui/Field.jsx'
 import { ArrowLeftIcon } from '../components/icons/Icons.jsx'
 import { buttonClasses } from '../lib/buttonStyles.js'
-import { useAuth } from '../hooks/useAuth.js'
 import { useFormState } from '../hooks/useFormState.js'
 import { vehiculosApi } from '../api/vehiculos.js'
-import { userVehiculoApi } from '../api/userVehiculo.js'
+import { avisoKmActual } from '../lib/kilometraje.js'
 
 const ANIO_ACTUAL = new Date().getFullYear()
 
 export function NuevoVehiculoPage() {
-  const { session } = useAuth()
   const navigate = useNavigate()
   const { values, setField } = useFormState({
     nombre: '',
@@ -55,7 +53,7 @@ export function NuevoVehiculoPage() {
         kilometrajeActual: kilometraje,
       })
 
-      await userVehiculoApi.crear({ usuarioId: session.usuarioId, vehiculoId: vehiculo.id })
+      // El API asocia al usuario autenticado como PROPIETARIO al crear el vehiculo.
       navigate(`/vehiculos/${vehiculo.id}`, { replace: true })
     } catch (err) {
       setError(err)
@@ -126,17 +124,15 @@ export function NuevoVehiculoPage() {
             onChange={(event) => setField('placa', event.target.value.toUpperCase())}
             required
           />
-          <Input
+          <KmInput
             id="kilometraje"
-            type="number"
-            inputMode="numeric"
-            min="0"
             label="Kilometraje actual"
             placeholder="125000"
             hint="Con este valor se calcula que mantenimiento te toca"
             value={values.kilometraje}
+            advertencia={avisoKmActual(values.kilometraje)}
             error={fieldErrors.kilometrajeActual}
-            onChange={(event) => setField('kilometraje', event.target.value)}
+            onChange={(valor) => setField('kilometraje', valor)}
             required
           />
         </div>

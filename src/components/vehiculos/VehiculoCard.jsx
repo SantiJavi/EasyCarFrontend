@@ -3,6 +3,7 @@ import { Badge } from '../ui/Badge.jsx'
 import { ArrowRightIcon, CarIcon } from '../icons/Icons.jsx'
 import { formatKm } from '../../lib/format.js'
 import { estadoMantenimiento, kmActual, proximoMantenimiento } from '../../lib/vehiculo.js'
+import { esSoloLectura, etiquetaRol, rolDe } from '../../lib/permisos.js'
 
 export function VehiculoCard({ vehiculo }) {
   const km = kmActual(vehiculo)
@@ -30,7 +31,14 @@ export function VehiculoCard({ vehiculo }) {
             </p>
           </div>
         </div>
-        <Badge tono="slate">{vehiculo.placa}</Badge>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <Badge tono="slate">{vehiculo.placa}</Badge>
+          {rolDe(vehiculo) === 'PROPIETARIO' ? null : (
+            <Badge tono={esSoloLectura(vehiculo) ? 'amber' : 'indigo'}>
+              {etiquetaRol(rolDe(vehiculo))}
+            </Badge>
+          )}
+        </div>
       </div>
 
       <div className="mt-6 flex items-end justify-between gap-3">

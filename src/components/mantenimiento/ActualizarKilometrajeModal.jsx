@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { Button } from '../ui/Button.jsx'
 import { ErrorAlert } from '../ui/Feedback.jsx'
-import { Input } from '../ui/Field.jsx'
+import { KmInput } from '../ui/Field.jsx'
 import { Modal } from '../ui/Modal.jsx'
 import { CalendarIcon, GaugeIcon } from '../icons/Icons.jsx'
 import { useToast } from '../../hooks/useToast.js'
 import { formatKm } from '../../lib/format.js'
 import { evaluarTipo, kmActual, ordenarPorVencimiento, tiposDe } from '../../lib/vehiculo.js'
 import { vehiculosApi } from '../../api/vehiculos.js'
+import { avisoKmActual } from '../../lib/kilometraje.js'
 
 const ESTILO_ESTADO = {
   rose: 'bg-rose-50 text-rose-700',
@@ -84,15 +85,13 @@ export function ActualizarKilometrajeModal({ open, onClose, vehiculo, onSaved })
         <form onSubmit={guardar} className="space-y-4" noValidate>
           <ErrorAlert error={error} />
 
-          <Input
+          <KmInput
             id="kmNuevo"
-            type="number"
-            inputMode="numeric"
-            min="0"
             label="Kilometraje nuevo"
             placeholder="125500"
             value={km}
-            onChange={(event) => setKm(event.target.value)}
+            onChange={(valor) => setKm(valor)}
+            advertencia={avisoKmActual(km, kmBase)}
             hint="No necesitas marcar mantenimientos: se calcula cual te toca."
             required
           />

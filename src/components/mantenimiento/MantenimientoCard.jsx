@@ -1,7 +1,13 @@
 import { Badge } from '../ui/Badge.jsx'
-import { CalendarIcon, CheckIcon, GaugeIcon } from '../icons/Icons.jsx'
+import { CalendarIcon, CheckIcon, GaugeIcon, PencilIcon } from '../icons/Icons.jsx'
 import { formatFecha, formatKm } from '../../lib/format.js'
-import { esPorTiempo, estadoMantenimiento, ultimoRegistroDeTipo } from '../../lib/vehiculo.js'
+import {
+  esPorTiempo,
+  estadoMantenimiento,
+  frecuenciaKmDe,
+  frecuenciaMesesDe,
+  ultimoRegistroDeTipo,
+} from '../../lib/vehiculo.js'
 
 const BARRA = {
   rose: 'bg-rose-500',
@@ -10,11 +16,15 @@ const BARRA = {
   slate: 'bg-slate-300',
 }
 
-export function MantenimientoCard({ tipo, vehiculo, onRegistrar }) {
+export function MantenimientoCard({ tipo, vehiculo, onRegistrar, onEditar, puedeEditar = true }) {
   const estado = estadoMantenimiento(tipo, vehiculo)
   const ultimo = ultimoRegistroDeTipo(vehiculo, tipo.id)
   const progreso = Math.round((estado.progreso ?? 0) * 100)
   const porTiempo = esPorTiempo(tipo)
+  const frecuencia = porTiempo ? frecuenciaMesesDe(tipo) : frecuenciaKmDe(tipo)
+  const textoFrecuencia = frecuencia
+    ? ` · cada ${porTiempo ? `${frecuencia} ${frecuencia === 1 ? 'mes' : 'meses'}` : formatKm(frecuencia)}`
+    : ''
   const Icono = estado.motivo === 'tiempo' ? CalendarIcon : GaugeIcon
 
   return (
@@ -26,7 +36,8 @@ export function MantenimientoCard({ tipo, vehiculo, onRegistrar }) {
           </h3>
           <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-slate-400">
             {porTiempo ? <CalendarIcon className="h-3.5 w-3.5" /> : <GaugeIcon className="h-3.5 w-3.5" />}
-            {porTiempo ? 'Por tiempo' : 'Por kilometraje'}
+            {porTiempo ? 'Por fecha' : 'Por kilometraje'}
+            {textoFrecuencia}
           </p>
         </div>
         <Badge tono={estado.tono}>{estado.etiqueta}</Badge>
@@ -73,15 +84,30 @@ export function MantenimientoCard({ tipo, vehiculo, onRegistrar }) {
           <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">{tipo.observacion}</p>
         ) : null}
 
-        {onRegistrar ? (
-          <button
-            type="button"
-            onClick={() => onRegistrar(tipo)}
-            className="mt-3 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 text-[13px] font-medium text-white transition hover:bg-slate-800"
-          >
-            <CheckIcon className="h-4 w-4" />
-            Registrar cambio
-          </button>
+        {puedeEditar && (onRegistrar || onEditar) ? (
+          <div className="mt-3 flex gap-2">
+            {onRegistrar ? (
+              <button
+                type="button"
+                onClick={() => onRegistrar(tipo)}
+                className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-slate-900 text-[13px] font-medium text-white transition hover:bg-slate-800"
+              >
+                <CheckIcon className="h-4 w-4" />
+                Registrar cambio
+              </button>
+            ) : null}
+            {onEditar ? (
+              <button
+                type="button"
+                onClick={() => onEditar(tipo)}
+                aria-label={`Editar ${tipo.nombreMantenimiento}`}
+                className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-xl px-3 text-[13px] font-medium text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50"
+              >
+                <PencilIcon className="h-4 w-4" />
+                Editar
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </article>

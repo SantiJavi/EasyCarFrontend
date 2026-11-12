@@ -10,7 +10,9 @@ import { VehiculoPage } from '../pages/VehiculoPage.jsx'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
-  { path: '/registro', element: <RegisterPage /> },
+  // Alta de usuarios restringida: la ruta publica /registro se retiro.
+  // El formulario queda en una ruta no enlazada y ademas exige el codigo del servidor.
+  { path: '/registro-easycar', element: <RegisterPage /> },
   {
     path: '/',
     element: (

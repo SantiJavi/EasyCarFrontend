@@ -83,6 +83,37 @@ export const TrashIcon = (props) => (
   </Svg>
 )
 
+export const EyeIcon = (props) => (
+  <Svg {...props}>
+    <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+    <circle cx="12" cy="12" r="3.2" />
+  </Svg>
+)
+
+export const EyeOffIcon = (props) => (
+  <Svg {...props}>
+    <path d="M10.6 6.1A9.9 9.9 0 0112 6c6 0 9.5 6 9.5 6a17 17 0 01-2.4 3.2" />
+    <path d="M6.3 7.4A16.6 16.6 0 002.5 12S6 18 12 18a9.6 9.6 0 003.2-.5" />
+    <path d="M9.9 9.9a3 3 0 004.2 4.2" />
+    <path d="M4 4l16 16" />
+  </Svg>
+)
+
+export const UsersIcon = (props) => (
+  <Svg {...props}>
+    <path d="M15.5 20v-1.6a3.4 3.4 0 00-3.4-3.4H6.4A3.4 3.4 0 003 18.4V20" />
+    <circle cx="9.2" cy="8.4" r="3.1" />
+    <path d="M21 20v-1.6a3.4 3.4 0 00-2.6-3.3M16.2 5.5a3.1 3.1 0 010 5.9" />
+  </Svg>
+)
+
+export const PencilIcon = (props) => (
+  <Svg {...props}>
+    <path d="M4 20h4.2l9.4-9.4a2.1 2.1 0 00-3-3L5.2 17 4 20z" />
+    <path d="M13.6 6.9l3 3" />
+  </Svg>
+)
+
 export const UserIcon = (props) => (
   <Svg {...props}>
     <circle cx="12" cy="8.2" r="3.6" />

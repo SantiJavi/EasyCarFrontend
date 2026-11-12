@@ -56,11 +56,14 @@ moverse a variables de entorno del sistema, no al repositorio.
 | Bosquejo | Ruta | Que hace |
 | --- | --- | --- |
 | Login | `/login` | POST /auth/login, guarda el JWT |
-| — | `/registro` | POST /auth/register y sesion automatica (necesario para crear la cuenta) |
+| Alta de usuario | `/registro-easycar` | POST /auth/register con codigo de registro y sesion automatica. Ruta no enlazada: el login ya no ofrece "crear cuenta" |
 | Pantalla Principal | `/` | "User" + mis vehiculos con kilometraje y proximo mantenimiento |
 | Agregar Vehiculo | `/vehiculos/nuevo` | Nombre, Marca, Año, Matrícula y Kilometraje actual |
 | Pantalla Vista Por Vehiculo | `/vehiculos/:id` | Km actual, mantenimientos por vencimiento e historial |
-| Agregar Mantenimiento | dialogo | Nombre, switch kilometraje/tiempo, frecuencia y observacion |
+| Agregar Mantenimiento | dialogo | Nombre, switch kilometraje/fecha, frecuencia y observacion |
+| Editar Mantenimiento | dialogo por mantenimiento | Nombre, switch kilometraje/fecha, objetivo y observacion |
+| Compartir vehiculo | dialogo por vehiculo | Codigos con vigencia, renovar/revocar y roles de acceso |
+| Unirme con codigo | dialogo (Dashboard) | Canjea un codigo y da acceso al vehiculo |
 | Actualizar Kilometraje | dialogo | Solo el km nuevo; al guardar calcula que te toca |
 | Registrar cambio | dialogo por mantenimiento | Nuevo objetivo (km o fecha) y crea el historial |
 
@@ -73,33 +76,62 @@ moverse a variables de entorno del sistema, no al repositorio.
    `PATCH /api/vehiculos/{id}/kilometraje`, sin registrar mantenimientos.
 3. **"Carro Vinculado"** (id carro / clave) no se implementó en esta version.
 4. **Frecuencia**: un switch elige el tipo y se guarda en `tipoVista` (1 = kilometraje,
-   2 = tiempo). Por kilometraje se pide "cada cuántos km" y se guarda `kilometrajeObjetivo`
-   (km actual + frecuencia); por tiempo se pide "cada cuántos meses" y se guarda
-   `fechaSiguienteMantenimiento` (hoy + meses). El otro campo queda nulo.
+   2 = fecha). La frecuencia se persiste en `frecuenciaKm` / `frecuenciaMeses`, y el objetivo
+   (`kilometrajeObjetivo` o `fechaSiguienteMantenimiento`) se calcula como base + frecuencia:
+   la base es el ultimo servicio de ese mantenimiento o, si nunca se hizo, el kilometraje
+   actual / hoy. El boton **Editar** permite cambiar la frecuencia (por ejemplo de cada
+   5.000 km a cada 10.000 km) y el objetivo se recalcula solo; al pasar de kilometraje a
+   fecha (o al reves) el backend descarta el objetivo que ya no aplica. La frecuencia tambien
+   alimenta la barra de progreso, por eso el avance se ve aunque no haya historial.
 5. **Actualizar kilometraje** solo cambia el km del vehiculo y, al guardar, muestra que
    mantenimiento toca con ese kilometraje (no obliga a marcar nada). Los cambios de
    mantenimiento se registran con el boton **Registrar cambio** de cada tarjeta: ahi se
-   crea el historial con el km actual y la fecha de hoy, y se define el nuevo objetivo
-   (proximo km si es por kilometraje, proxima fecha si es por tiempo).
+   crea el historial con el km actual y la fecha del servicio (por defecto hoy, modificable
+   hacia atras, nunca futura) y el nuevo objetivo se mueve segun la frecuencia configurada.
 6. El **historial** del vehiculo lista solo mantenimientos hechos (mantenimiento, km y
    fecha); las actualizaciones de kilometraje ya no generan registros.
+7. **Acceso compartido**: el propietario genera un codigo con la vigencia que elige (1 a 365
+   dias), lo comparte y puede renovarlo (reinicia la cuenta desde hoy) o revocarlo sin
+   cambiar el codigo. Quien lo canjea queda como COLABORADOR; el propietario puede pasarlo a
+   LECTURA o quitarle el acceso. Al expulsar a alguien se conserva el historial que haya
+   registrado: los registros no se borran en cascada, solo se pierde el acceso.
+   Permisos: PROPIETARIO administra codigos, roles y puede borrar el vehiculo; COLABORADOR
+   edita kilometraje, mantenimientos e historial (incluso registros de otros); LECTURA solo
+   consulta. El API valida esto en el servidor, la UI solo oculta los botones.
+8. **Alta de usuarios restringida (provisional)**: el login ya no muestra el enlace de registro y
+   la ruta publica `/registro` se retiro; el formulario vive en `/registro-easycar` y exige el
+   codigo configurado en el backend (`app.registro.codigo`, variable `REGISTRO_CODIGO`). Si el
+   servidor no define ese codigo, `POST /auth/register` responde 403 y no se puede crear ninguna
+   cuenta. `POST /api/usuarios` tambien lo exige (header `X-Codigo-Registro`). Ocultar la ruta
+   solo no protege nada: la restriccion real esta en el API.
+9. **Campos de kilometraje**: todos usan el mismo componente (`KmInput` en `ui/Field.jsx`).
+   Mientras se escribe se ve con separador de miles es-CO (`52.500`), debajo aparece el valor
+   en grande con la cantidad de cifras, y si el numero parece tener un cero de mas se muestra
+   un aviso no bloqueante (`lib/kilometraje.js`). El valor que se guarda y se envia al API son
+   solo los digitos.
 
 ## Mapeo con el API
 
 | UI | Endpoint |
 | --- | --- |
-| Login / Registro | `POST /auth/login`, `POST /auth/register` |
-| Mis vehiculos | `GET /api/user-vehiculo/usuario/{usuarioId}` + `GET /api/vehiculos` |
-| Crear vehiculo | `POST /api/vehiculos` + `POST /api/user-vehiculo` |
+| Login / Alta privada | `POST /auth/login`, `POST /auth/register` (requiere `codigo`) |
+| Mis vehiculos | `GET /api/vehiculos` (devuelve solo los mios, con mi rol) |
+| Crear vehiculo | `POST /api/vehiculos` (el API deja al creador como PROPIETARIO) |
 | Detalle | `GET /api/vehiculos/{id}` (trae mantenimientos e historial anidados) |
 | Agregar mantenimiento | `POST /api/tipos-mantenimiento` |
+| Editar mantenimiento | `PUT /api/tipos-mantenimiento/{id}` |
 | Actualizar kilometraje | `PATCH /api/vehiculos/{id}/kilometraje` |
 | Registrar mantenimiento | `POST /api/historiales` + `PUT /api/tipos-mantenimiento/{id}` |
 | Borrar registro | `DELETE /api/historiales/{id}` |
+| Generar / listar codigos | `POST /api/invitaciones`, `GET /api/invitaciones/vehiculo/{vehiculoId}` |
+| Renovar / revocar codigo | `PUT /api/invitaciones/{id}/renovar`, `DELETE /api/invitaciones/{id}` |
+| Unirme con codigo | `POST /api/invitaciones/canjear/{codigo}` |
+| Personas con acceso | `GET /api/vehiculos/{id}/accesos`, `PUT` y `DELETE .../accesos/{usuarioId}` |
 
 Notas del contrato: `tipoVista` es 1 para mantenimientos por kilometraje y 2 para
-mantenimientos por tiempo; las fechas `java.util.Date` se envían como ISO completo
-(`AAAA-MM-DDT00:00:00.000Z`).
+mantenimientos por fecha; las fechas `java.util.Date` se envían como ISO completo
+(`AAAA-MM-DDT00:00:00.000Z`). En `PUT /api/tipos-mantenimiento/{id}` el backend guarda
+solo el objetivo que corresponde al `tipoVista` recibido y pone el otro en `null`.
 
 ## Calculo de vencimientos
 
@@ -129,14 +161,16 @@ src/
   api/            cliente fetch + un modulo por recurso
   components/
     layout/       AppShell, AuthLayout, ProtectedRoute
-    ui/           Button, Field, Modal (hoja inferior en movil), ConfirmDialog,
+    ui/           Button, Field (incluye KmInput), Modal (hoja inferior en movil), ConfirmDialog,
                   Badge, Feedback (spinner, skeleton, empty, alert)
-    vehiculos/    VehiculoCard
-    mantenimiento/ MantenimientoCard, AgregarMantenimientoModal, ActualizarKilometrajeModal
+    vehiculos/    VehiculoCard, CompartirVehiculoModal, UnirseConCodigoModal
+    mantenimiento/ MantenimientoCard, AgregarMantenimientoModal, EditarMantenimientoModal,
+                  TipoFrecuenciaToggle, ActualizarKilometrajeModal, RegistrarMantenimientoModal
     icons/        SVG propios
   context/        AuthContext (JWT) y ToastContext
   hooks/          useAuth, useToast, useApiResource, useFormState
-  lib/            cn, buttonClasses, formato de fechas/km, reglas de vehiculo
+  lib/            cn, buttonClasses, formato de fechas/km, kilometraje (avisos),
+                  reglas de vehiculo, permisos (PROPIETARIO / COLABORADOR / LECTURA)
   pages/          Login, Registro, Panel, NuevoVehiculo, Vehiculo, 404
   router/         rutas
 ```

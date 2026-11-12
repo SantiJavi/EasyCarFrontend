@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Button } from '../ui/Button.jsx'
 import { ErrorAlert } from '../ui/Feedback.jsx'
-import { Input, Textarea } from '../ui/Field.jsx'
+import { Input, KmInput, Textarea } from '../ui/Field.jsx'
 import { Modal } from '../ui/Modal.jsx'
+import { TipoFrecuenciaToggle } from './TipoFrecuenciaToggle.jsx'
 import { useFormState } from '../../hooks/useFormState.js'
 import { formatKm, sumarMeses, toInputDate, toIsoDateTime } from '../../lib/format.js'
 import { TIPO_VISTA_KM, TIPO_VISTA_TIEMPO, kmActual } from '../../lib/vehiculo.js'
 import { tiposMantenimientoApi } from '../../api/tiposMantenimiento.js'
+import { avisoFrecuenciaKm, avisoProximoKm } from '../../lib/kilometraje.js'
 
 const VACIO = { nombre: '', frecuencia: '', proximoKm: '', observacion: '' }
 
@@ -14,7 +16,7 @@ const VACIO = { nombre: '', frecuencia: '', proximoKm: '', observacion: '' }
  * "Agregar Mantenimiento" del bosquejo.
  * El switch elige el tipo de frecuencia y se guarda en tipoVista:
  *   1 = por kilometraje  -> kilometrajeObjetivo
- *   2 = por tiempo       -> fechaSiguienteMantenimiento
+ *   2 = por fecha        -> fechaSiguienteMantenimiento
  */
 export function AgregarMantenimientoModal({ open, onClose, vehiculo, onSaved }) {
   const kmBase = kmActual(vehiculo)
@@ -37,6 +39,8 @@ export function AgregarMantenimientoModal({ open, onClose, vehiculo, onSaved }) 
 
     let kilometrajeObjetivo = null
     let fechaSiguienteMantenimiento = null
+    let frecuenciaKm = null
+    let frecuenciaMeses = null
 
     if (porTiempo) {
       const meses = Number(values.frecuencia)
@@ -44,6 +48,7 @@ export function AgregarMantenimientoModal({ open, onClose, vehiculo, onSaved }) 
         setError('La frecuencia en meses debe ser mayor que 0')
         return
       }
+      frecuenciaMeses = meses
       fechaSiguienteMantenimiento = toIsoDateTime(toInputDate(sumarMeses(new Date(), meses)))
     } else if (kmBase === null) {
       const absoluto = Number(values.proximoKm)
@@ -58,6 +63,7 @@ export function AgregarMantenimientoModal({ open, onClose, vehiculo, onSaved }) 
         setError('La frecuencia en kilometros debe ser mayor que 0')
         return
       }
+      frecuenciaKm = frecuencia
       kilometrajeObjetivo = kmBase + frecuencia
     }
 
@@ -68,6 +74,8 @@ export function AgregarMantenimientoModal({ open, onClose, vehiculo, onSaved }) 
         fechaSiguienteMantenimiento,
         observacion: values.observacion.trim() || null,
         kilometrajeObjetivo,
+        frecuenciaKm,
+        frecuenciaMeses,
         tipoVista: modo,
         vehiculoId: vehiculo.id,
       })
@@ -85,7 +93,7 @@ export function AgregarMantenimientoModal({ open, onClose, vehiculo, onSaved }) 
       open={open}
       onClose={onClose}
       title="Agregar mantenimiento"
-      description="Elige si se controla por kilometraje o por tiempo"
+      description="Elige si se controla por kilometraje o por fecha"
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <ErrorAlert error={error} />
@@ -100,43 +108,13 @@ export function AgregarMantenimientoModal({ open, onClose, vehiculo, onSaved }) 
           required
         />
 
-        <div>
-          <p className="mb-1.5 text-[13px] font-medium text-slate-700">Tipo de frecuencia</p>
-          <div
-            className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1"
-            role="group"
-            aria-label="Tipo de frecuencia"
-          >
-            <button
-              type="button"
-              aria-pressed={modo === TIPO_VISTA_KM}
-              onClick={() => {
-                setModo(TIPO_VISTA_KM)
-                setError(null)
-              }}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
-                modo === TIPO_VISTA_KM
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Por kilometraje
-            </button>
-            <button
-              type="button"
-              aria-pressed={porTiempo}
-              onClick={() => {
-                setModo(TIPO_VISTA_TIEMPO)
-                setError(null)
-              }}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
-                porTiempo ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Por tiempo
-            </button>
-          </div>
-        </div>
+        <TipoFrecuenciaToggle
+          value={modo}
+          onChange={(valor) => {
+            setModo(valor)
+            setError(null)
+          }}
+        />
 
         {porTiempo ? (
           <Input
@@ -153,31 +131,27 @@ export function AgregarMantenimientoModal({ open, onClose, vehiculo, onSaved }) 
             required
           />
         ) : kmBase !== null ? (
-          <Input
+          <KmInput
             id="frecuencia"
-            type="number"
-            inputMode="numeric"
-            min="1"
             label="Cada cuantos kilometros"
             placeholder="5000"
             hint={`Base actual: ${formatKm(kmBase)}`}
             value={values.frecuencia}
+            advertencia={avisoFrecuenciaKm(values.frecuencia)}
             error={fieldErrors.kilometrajeObjetivo}
-            onChange={(event) => setField('frecuencia', event.target.value)}
+            onChange={(valor) => setField('frecuencia', valor)}
             required
           />
         ) : (
-          <Input
+          <KmInput
             id="proximoKm"
-            type="number"
-            inputMode="numeric"
-            min="1"
             label="Proximo kilometraje"
             placeholder="125000"
             hint="Aun no hay kilometraje registrado"
             value={values.proximoKm}
+            advertencia={avisoProximoKm(values.proximoKm)}
             error={fieldErrors.kilometrajeObjetivo}
-            onChange={(event) => setField('proximoKm', event.target.value)}
+            onChange={(valor) => setField('proximoKm', valor)}
             required
           />
         )}

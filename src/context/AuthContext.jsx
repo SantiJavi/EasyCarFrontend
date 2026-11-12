@@ -33,8 +33,8 @@ export function AuthProvider({ children }) {
   }, [])
 
   const register = useCallback(
-    async ({ usuario, email, password }) => {
-      await authApi.register({ usuario, email, password })
+    async ({ usuario, email, password, codigo }) => {
+      await authApi.register({ usuario, email, password, codigo })
       return login(email, password)
     },
     [login],

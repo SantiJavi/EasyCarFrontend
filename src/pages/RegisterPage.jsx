@@ -10,7 +10,13 @@ import { useFormState } from '../hooks/useFormState.js'
 export function RegisterPage() {
   const { register } = useAuth()
   const navigate = useNavigate()
-  const { values, setField } = useFormState({ usuario: '', email: '', password: '', confirmacion: '' })
+  const { values, setField } = useFormState({
+    usuario: '',
+    email: '',
+    password: '',
+    confirmacion: '',
+    codigo: '',
+  })
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
 
@@ -26,6 +32,10 @@ export function RegisterPage() {
       setError('Las contrasenas no coinciden')
       return
     }
+    if (!values.codigo.trim()) {
+      setError('Escribe el codigo de registro')
+      return
+    }
 
     setLoading(true)
     try {
@@ -33,6 +43,7 @@ export function RegisterPage() {
         usuario: values.usuario.trim(),
         email: values.email.trim(),
         password: values.password,
+        codigo: values.codigo.trim(),
       })
       navigate('/', { replace: true })
     } catch (err) {
@@ -44,8 +55,8 @@ export function RegisterPage() {
 
   return (
     <AuthLayout
-      title="Crea tu cuenta"
-      subtitle="Con la cuenta podras registrar tus vehiculos y sus mantenimientos"
+      title="Alta de usuario"
+      subtitle="Registro restringido: necesitas el codigo de registro del administrador"
       footer={
         <>
           Ya tienes cuenta?{' '}
@@ -96,6 +107,15 @@ export function RegisterPage() {
           autoComplete="new-password"
           value={values.confirmacion}
           onChange={(event) => setField('confirmacion', event.target.value)}
+          required
+        />
+        <Input
+          id="codigo"
+          label="Codigo de registro"
+          autoComplete="off"
+          placeholder="Codigo entregado por el administrador"
+          value={values.codigo}
+          onChange={(event) => setField('codigo', event.target.value)}
           required
         />
         <Button type="submit" size="lg" className="w-full" loading={loading}>

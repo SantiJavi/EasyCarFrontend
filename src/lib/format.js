@@ -6,6 +6,17 @@ export function formatKm(valor) {
   return `${new Intl.NumberFormat(LOCALE).format(valor)} km`
 }
 
+/** Solo los digitos: es el valor que se guarda y se envia al API. */
+export function soloDigitos(valor) {
+  return String(valor ?? '').replace(/\D/g, '')
+}
+
+/** 52500 -> "52.500" (separador de miles es-CO), para mostrar mientras se escribe. */
+export function formatearMiles(valor) {
+  const digitos = soloDigitos(valor)
+  return digitos ? new Intl.NumberFormat(LOCALE).format(Number(digitos)) : ''
+}
+
 export function formatNumero(valor) {
   if (valor === null || valor === undefined || valor === '') return '—'
   return new Intl.NumberFormat(LOCALE).format(valor)

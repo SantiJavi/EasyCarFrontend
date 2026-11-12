@@ -51,7 +51,7 @@ export function AuthLayout({ title, subtitle, children, footer }) {
           </ul>
         </div>
 
-        <p className="relative text-xs text-slate-500">Spring Boot + React</p>
+        <p className="relative text-xs text-slate-500">Devsotec</p>
       </aside>
 
       <section className="flex min-h-dvh items-center justify-center px-5 py-10 sm:px-8">
