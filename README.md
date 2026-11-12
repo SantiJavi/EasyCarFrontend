@@ -27,7 +27,8 @@ npm run build
 npm run preview
 ```
 
-En desarrollo `/api` y `/auth` pasan por el proxy de `vite.config.js`. Si el frontend y el
+En desarrollo `/api` y `/auth` pasan por el proxy de `vite.config.js`, que apunta a
+`API_PROXY_TARGET` (en `.env`, por defecto `http://localhost:8080`). Si el frontend y el
 API no comparten dominio, define `VITE_API_URL` (ver `.env.example`) y el CORS del backend.
 
 > `npm install` usa `legacy-peer-deps=true` (`.npmrc`) porque npm 10.8 falla al resolver
@@ -39,13 +40,21 @@ Frontend (Vite expone al navegador **solo** las variables que empiezan por `VITE
 
 | Archivo | Uso |
 | --- | --- |
+| `.env` | valores de tu maquina (no se versiona) |
 | `.env.example` | plantilla versionada con las claves disponibles |
-| `.env.local` | valores de tu maquina (no se versiona) |
-| `.env.production` | valores del build de produccion |
+| `.env.production` | valores locales para `npm run build`; en Cloudflare Pages los valores salen del panel (ver `../DEPLOY.md`) |
 
-`VITE_API_URL` se lee en `src/api/client.js` con `import.meta.env.VITE_API_URL`. Si no se
-define, el cliente usa rutas relativas y el proxy de `vite.config.js` las reenvia a
-`http://localhost:8080` en desarrollo.
+Variables disponibles:
+
+| Clave | Quien la lee | Para que |
+| --- | --- | --- |
+| `API_PROXY_TARGET` | `vite.config.js` (solo dev) | destino del proxy `/api` y `/auth`; por defecto `http://localhost:8080` |
+| `VITE_API_URL` | `src/api/client.js` (bundle) | URL absoluta del API en produccion; vacia en desarrollo |
+
+`API_PROXY_TARGET` no lleva prefijo `VITE_` a proposito: Vite solo expone al navegador las
+variables `VITE_*`, asi que el destino interno del dev server no acaba en el bundle.
+`VITE_API_URL` se lee con `import.meta.env.VITE_API_URL`; si no se define, el cliente usa
+rutas relativas y el proxy las reenvia a `API_PROXY_TARGET`.
 
 Backend (`easycar/src/main/resources/application.properties`): datasource de PostgreSQL,
 `security.jwt.secret` y `security.jwt.expiration-ms`. En produccion esos valores deberian

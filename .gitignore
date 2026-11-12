@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Variables de entorno locales (la plantilla .env.example si se versiona)
+.env
+.env.*
+!.env.example

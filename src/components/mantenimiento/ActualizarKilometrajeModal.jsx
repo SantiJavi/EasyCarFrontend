@@ -8,7 +8,7 @@ import { useToast } from '../../hooks/useToast.js'
 import { formatKm } from '../../lib/format.js'
 import { evaluarTipo, kmActual, ordenarPorVencimiento, tiposDe } from '../../lib/vehiculo.js'
 import { vehiculosApi } from '../../api/vehiculos.js'
-import { avisoKmActual } from '../../lib/kilometraje.js'
+import { avisoKmActual, avisoKmMenor } from '../../lib/kilometraje.js'
 
 const ESTILO_ESTADO = {
   rose: 'bg-rose-50 text-rose-700',
@@ -41,10 +41,6 @@ export function ActualizarKilometrajeModal({ open, onClose, vehiculo, onSaved })
       setError('Escribe un kilometraje valido')
       return
     }
-    if (kmBase !== null && valor < kmBase) {
-      setError(`No puede ser menor que el kilometraje actual (${formatKm(kmBase)})`)
-      return
-    }
 
     setGuardando(true)
     try {
@@ -70,6 +66,9 @@ export function ActualizarKilometrajeModal({ open, onClose, vehiculo, onSaved })
     (item) => item.estado.tono === 'rose' || item.estado.tono === 'amber',
   )
 
+  // Corregir a la baja se permite siempre; solo se advierte (nunca se bloquea).
+  const advertencia = avisoKmMenor(km, kmBase) ?? avisoKmActual(km, kmBase)
+
   return (
     <Modal
       open={open}
@@ -91,7 +90,7 @@ export function ActualizarKilometrajeModal({ open, onClose, vehiculo, onSaved })
             placeholder="125500"
             value={km}
             onChange={(valor) => setKm(valor)}
-            advertencia={avisoKmActual(km, kmBase)}
+            advertencia={advertencia}
             hint="No necesitas marcar mantenimientos: se calcula cual te toca."
             required
           />

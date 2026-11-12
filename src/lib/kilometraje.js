@@ -26,6 +26,23 @@ export function avisoKmActual(valor, actual = null) {
   return null
 }
 
+/**
+ * Kilometraje por debajo del registrado. No bloquea el guardado: existe para
+ * corregir un error de captura, pero se avisa porque puede dejar metas de
+ * mantenimiento por delante del tablero real.
+ */
+export function avisoKmMenor(valor, actual = null) {
+  if (valor === '' || valor === null || valor === undefined) return null
+  if (actual === null || actual === undefined) return null
+
+  const numero = Number(valor)
+  if (!Number.isFinite(numero) || numero >= actual) return null
+
+  return `Queda ${formatKm(actual - numero)} por debajo de lo registrado (${formatKm(
+    actual,
+  )}). Se guarda igual: usalo solo para corregir un error.`
+}
+
 /** Proximo kilometraje objetivo de un mantenimiento. */
 export function avisoProximoKm(valor, { actual = null, frecuencia = null } = {}) {
   const numero = Number(valor)
