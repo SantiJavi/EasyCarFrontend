@@ -27,3 +27,6 @@ dist-ssr
 .env
 .env.*
 !.env.example
+# El build de produccion necesita VITE_API_URL en el repo: Workers Builds no
+# la inyecta como variable de entorno del build.
+!.env.production
